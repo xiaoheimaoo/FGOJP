@@ -21,13 +21,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.LinkedList;
-import java.util.Properties;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.zip.CRC32;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -38,6 +38,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.UIManager;
+
+import static cn.mcfun.utils.AES.decryptWithAesCBC;
 
 public class Main {
     private static Main main;
@@ -213,16 +215,29 @@ public class Main {
         typeJComboBox.setEnabled(false);
         numJComboBox.setEnabled(false);
         setup.addActionListener((e) -> {
-            String result = (new GetRequest()).sendGet("https://cdn.jsdelivr.net/gh/xiaoheimaoo/FGOData/mstVer.json");
-            JSONObject json = JSONObject.parseObject(result);
-            appVer = json.getString("appVer");
-            assetbundleFolder = json.getString("folderName");
+            String result = new GetRequest().sendGet("https://game.fate-go.jp/gamedata/top?appVer=2.44.0");
+            JSONObject res = JSONObject.parseObject(result);
+            if (res.getJSONArray("response").getJSONObject(0).getJSONObject("fail").getString("action") != null) {
+                if (res.getJSONArray("response").getJSONObject(0).getJSONObject("fail").getString("action").equals("app_version_up")) {
+                    String newVersion = res.getJSONArray("response").getJSONObject(0).getJSONObject("fail").getString("detail");
+                    Pattern pattern = Pattern.compile(".*新ver.：(.*)、現.*");
+                    Matcher matcher = pattern.matcher(newVersion);
+                    if(matcher.find()){
+                        appVer = matcher.group(1);
+                        result = new GetRequest().sendGet("https://game.fate-go.jp/gamedata/top?appVer="+matcher.group(1));
+                        res = JSONObject.parseObject(result);
+                    }
+                }
+            }
+            dataVer = res.getJSONArray("response").getJSONObject(0).getJSONObject("success").getString("dataVer");
+            dateVer = res.getJSONArray("response").getJSONObject(0).getJSONObject("success").getString("dateVer");
+            String assetbundle = res.getJSONArray("response").getJSONObject(0).getJSONObject("success").getString("assetbundle");
+            Map<String,Object> map = mouseInfoMsgPack(Base64.getDecoder().decode(assetbundle));
+            assetbundleFolder = (String) map.get("folderName");
             CRC32 crc32 = new CRC32();
             crc32.update(assetbundleFolder.getBytes(StandardCharsets.UTF_8));
             dataServerFolderCrc = String.valueOf(crc32.getValue());
-            dataVer = json.getString("dataVer");
-            dateVer = json.getString("dateVer");
-            animalName = json.getString("animalName");
+            animalName = (String) map.get("animalName");
             byte[] a = Main.animalName.getBytes();
             key = new byte[32];
             for (int i=0;i<32; i++) {
@@ -239,6 +254,9 @@ public class Main {
             typeJComboBox.setEnabled(true);
             numJComboBox.setEnabled(true);
             setup.setText("获取版本信息完成");
+            System.out.println(assetbundleFolder);
+            System.out.println(animalName);
+            System.out.println(dataVer);
             System.out.println("获取版本信息完成");
         });
         startButton.addActionListener((e) -> {
@@ -387,5 +405,17 @@ public class Main {
         synchronized(orders) {
             orders.offer(order);
         }
+    }
+    public static Map<String,Object> mouseInfoMsgPack(byte[] data){
+        byte[] InfoTop = new byte[32];
+        byte[] array = new byte[data.length - 32];
+        byte[] infoData = "W0Juh4cFJSYPkebJB9WpswNF51oa6Gm7".getBytes(StandardCharsets.UTF_8);
+        System.arraycopy(data, 0, InfoTop, 0, 32);
+        System.arraycopy(data, 32, array, 0, data.length - 32);
+        return mouseHomeMsgPack(array, infoData, InfoTop);
+    }
+    public static Map<String,Object> mouseHomeMsgPack(byte[] data, byte[] home, byte[] info){
+        Map<String,Object> a = decryptWithAesCBC(home,info,data);
+        return a;
     }
 }

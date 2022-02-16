@@ -12,18 +12,24 @@ public class GetRequest {
     public GetRequest() {
     }
 
-    public String sendGet(String url) {
+    public static String sendGet(String url) {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         HttpGet httpGet = new HttpGet(url);
-        String result = null;
-
+        httpGet.addHeader("Connection", "keep-alive");
+        httpGet.addHeader("Accept", "*/*");
+        CloseableHttpResponse response = null;
         try {
-            CloseableHttpResponse response = httpClient.execute(httpGet);
-            result = EntityUtils.toString(response.getEntity(), Charset.forName("utf-8"));
-        } catch (IOException var7) {
-            var7.printStackTrace();
+            response = httpClient.execute(httpGet);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
+        String result = null;
+        try {
+            result = EntityUtils.toString(response.getEntity(), Charset.forName("utf-8"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return result;
     }
+
 }
