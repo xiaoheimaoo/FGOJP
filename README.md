@@ -29,5 +29,5 @@ public class test {
 ```
 ## 卡池和从者id查询
 参考项目：[FGOData](https://github.com/xiaoheimaoo/FGOData) </br>
-卡池id看这里：[mstGacha.json](https://github.com/xiaoheimaoo/FGOData/blob/master/gamedata/mstGacha.json) </br>
-从者id看这里：[mstSvt.json](https://github.com/xiaoheimaoo/FGOData/blob/master/gamedata/mstSvt.json) </br>
+卡池id看这里：[mstGacha.json](https://github.com/xiaoheimaoo/FGOData/blob/master/JP/gamedata/mstGacha.json) </br>
+从者id看这里：[mstSvt.json](https://github.com/xiaoheimaoo/FGOData/blob/master/JP/gamedata/mstSvt.json) </br>
